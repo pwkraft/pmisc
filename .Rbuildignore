@@ -1,2 +1,11 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+.Rhistory$
+.gitignore
+.gitignore~
+.Rproj.user$
+.git/.*
+README.md
+R/.Rhistory
+^documentation$
+^tests$

@@ -1,8 +1,11 @@
 Package: pmisc
 Title: Collection of Convenience Functions For R
 Version: 0.0.1
-Authors@R: person("Patrick", "Kraft", email = "patrick.kraft@stonybrook.edu", role = c("aut", "cre"))
+Authors@R: c(person("Patrick", "Kraft", email = "patrick.kraft@stonybrook.edu", role = c("aut", "cre")))
+Author: Patrick Kraft [aut, cre]
+Maintainer: Patrick Kraft <patrick.kraft@stonybrook.edu>
 Description: This package contains a collection of useful functions for time-series and other stuff.
 Depends: R (>= 3.2.1)
+Imports: xtable, TSA, lmtest, sandwich
 License: GPL (>= 2)
 LazyData: true

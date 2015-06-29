@@ -28,7 +28,8 @@ need to install packages `sandwich' by Thomas Lumley and Achim Zeileis and
 `lmtest' by Torsten Hothorn, Achim Zeileis, Giovanni Millo and David Mitchell.
 (For example, type install.packages('sandwich') on the R console.)}
 \usage{
-coeftest.cluster(data, fm, cluster1 = NULL, cluster2 = NULL, ret = "test")
+\method{coeftest}{cluster}(data, fm, cluster1 = NULL, cluster2 = NULL,
+  ret = "test")
 }
 \description{
 R function for computing two-way cluster-robust standard errors.  The code

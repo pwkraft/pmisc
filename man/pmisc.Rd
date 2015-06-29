@@ -12,4 +12,7 @@ Collection of convenience functions for R.
 
 The pmisc functions ...
 }
+\author{
+Patrick Kraft
+}
 
