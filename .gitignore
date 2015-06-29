@@ -5,9 +5,20 @@
 # Example code in package build process
 *-Ex.R
 
+# Data
+.RData
+
 # RStudio files
 .Rproj.user/
 
 # produced vignettes
 vignettes/*.html
 vignettes/*.pdf
+
+# packages
+*.tar.gz
+
+# temp/backup files
+*~
+
+.Rproj.user
