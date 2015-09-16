@@ -9,5 +9,3 @@
 - License: GPL (>= 2)
 - LazyData: true
 
-
-Personal access token:  90971ea6ac70683b9511723c4c93cbd3245f5bec
