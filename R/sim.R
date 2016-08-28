@@ -1,6 +1,7 @@
 #' Simulate expected values/first differences (replaces Zelig)
 #' built: 2016-08-27, Patrick Kraft
 #' @importFrom MASS mvrnorm
+#' @importFrom sandwich vcovHC
 #' @param models: list of model results (lm, glm, or vglm/tobit)
 #' @param iv: data frame containing the values for comparison (only 2 rows, selected variables)
 #' @param robust: logical, should robust standard errors be used
@@ -19,7 +20,7 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
   for(i in 1:length(models)){
     ## simulate betas from sampling distribution
     if(robust == T){
-      betas <- MASS::mvrnorm(nsim, coef(models[[i]]), vcovHC(models[[i]]))
+      betas <- MASS::mvrnorm(nsim, coef(models[[i]]), sandwich::vcovHC(models[[i]]))
     } else {
       betas <- MASS::mvrnorm(nsim, coef(models[[i]]), vcov(models[[i]]))
     }
@@ -79,20 +80,20 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
         pvs[j,,] <- matrix(rnorm(nsim*ncol(X), mean = evsTemp[j,], sd = exp(betas[j,2]))
                            , ncol = nsim)
       }
-      probs <- apply(pvs, 2, function(x) apply(x, 1, function(x) mean(x>loLim)))
+      prob <- apply(pvs, 2, function(x) apply(x, 1, function(x) mean(x>loLim)))
     } else stop("Model type not supported")
 
     if(nrow(iv)==2){
       ## calculate first differences
       evs <- evs[,2] - evs[,1]
       if(class(models[[i]])[1] == "vglm" & models[[i]]@family@vfamily == "tobit"){
-        probs <- probs[,2] - probs[,1]
+        prob <- prob[,2] - prob[,1]
       }
     } else if(nrow(iv)==4) {
       ## calculate difference-in-difference
       evs <- (evs[,2] - evs[,1]) - (evs[,4] - evs[,3])
       if(class(models[[i]])[1] == "vglm" & models[[i]]@family@vfamily == "tobit"){
-        probs <- (probs[,2] - probs[,1]) - (probs[,4] - probs[,3])
+        prob <- (prob[,2] - prob[,1]) - (prob[,4] - prob[,3])
       }
     } else {
       warning("Check number of scenarios")
@@ -106,14 +107,13 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
                       , dv = as.factor(colnames(models[[i]]$model)[1])
                       , iv = as.factor(paste(colnames(iv), collapse = "_")))
     } else {
-    res <- data.frame(mean = mean(evs)
-                      , cilo = quantile(evs, ci[1])
-                      , cihi = quantile(evs, ci[2])
-                      , probs = mean(probs)
-                      , probslo = quantile(probs, ci[1])
-                      , probshi = quantile(probs, ci[2])
+    res <- data.frame(mean = c(mean(evs), mean(prob))
+                      , cilo = c(quantile(evs, ci[1]),quantile(prob, ci[1]))
+                      , cihi = c(quantile(evs, ci[2]), quantile(prob, ci[2]))
                       , dv = as.factor(sub("(.*) \\~.*", "\\1", models[[i]]@call[2]))
-                      , iv = as.factor(paste(colnames(iv), collapse = "_")))
+                      , iv = as.factor(paste(colnames(iv), collapse = "_"))
+                      , value = factor(c("Probability P(y)>0","Expected Value E(y|y>0)")
+                                       , levels = c("Probability P(y)>0","Expected Value E(y|y>0)")))
     }
     out <- rbind(out, res)
   }
