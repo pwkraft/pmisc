@@ -62,42 +62,57 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
       ## IDEA: decompose effect of tobit in dP(Y>0) and dY|Y>0
       ## based on predicted values (rather than EVs)
       ## note that betas[,2] is log(Sigma) estimate
-      evs <- betas[,-2] %*% X[-2,]
+      ## CHECK CALCULATIONS!
+      if(unique(models[[i]]@misc$Upper)!=Inf) stop("Upper limit not supported")
+      if(unique(models[[i]]@misc$Lower)!=0) warning("Limit != 0 not testes yet!")
+      loLim <- unique(models[[i]]@misc$Lower)[1,1]
+      
+      ## expected values for z>0
+      evsTemp <- betas[,-2] %*% X[-2,]
+      evs <- evsTemp + betas[,2] * dnorm(evsTemp/betas[,2]) / pnorm(evsTemp/betas[,2])
+      
+      ## probability of z>0
       pvs <- array(dim = c(nsim,ncol(X),nsim))
       for(j in 1:nrow(pvs)){
-        pvs[j,,] <- matrix(rnorm(nsim*ncol(X), mean = evs[j,], sd = exp(betas[j,2]))
+        pvs[j,,] <- matrix(rnorm(nsim*ncol(X), mean = evsTemp[j,], sd = exp(betas[j,2]))
                            , ncol = nsim)
       }
-      test <- apply(pvs, 2, function(x) apply(x, 1, function(x) mean(x>0)))
-      head(test)
-      head(evs)
-      plot(as.vector(test),as.vector(evs))
-      
-      pvs <- matrix(rnorm(length(betas)*100
-                          , rep(as.vector(betas[,-2] %*% X[-2,]),each=100)
-                          , ncol = ncol(X))
-      pvs <- cbind(pvs
-      evs <- apply(evsTemp, 2, function(x) x)
-      
-      unique(models[[i]]@misc$Lower)
+      probs <- apply(pvs, 2, function(x) apply(x, 1, function(x) mean(x>loLim)))
     } else stop("Model type not supported")
     
     if(nrow(iv)==2){
       ## calculate first differences
       evs <- evs[,2] - evs[,1]
+      if(class(models[[i]])[1] == "vglm" & models[[i]]@family@vfamily == "tobit"){
+        probs <- probs[,2] - probs[,1]
+      }
     } else if(nrow(iv)==4) {
       ## calculate difference-in-difference
       evs <- (evs[,2] - evs[,1]) - (evs[,4] - evs[,3])
+      if(class(models[[i]])[1] == "vglm" & models[[i]]@family@vfamily == "tobit"){
+        probs <- (probs[,2] - probs[,1]) - (probs[,4] - probs[,3])
+      }
     } else {
       warning("Check number of scenarios")
     }
     
     ## generate output table
+    if(class(models[[i]])[1] != "vglm" & models[[i]]@family@vfamily != "tobit"){
     res <- data.frame(mean = mean(evs)
                       , cilo = quantile(evs, ci[1])
                       , cihi = quantile(evs, ci[2])
                       , dv = as.factor(colnames(models[[i]]$model)[1])
                       , iv = as.factor(paste(colnames(iv), collapse = "_")))
+    } else {
+    res <- data.frame(mean = mean(evs)
+                      , cilo = quantile(evs, ci[1])
+                      , cihi = quantile(evs, ci[2])
+                      , probs = mean(probs)
+                      , probslo = quantile(probs, ci[1])
+                      , probshi = quantile(probs, ci[2])
+                      , dv = as.factor(sub("(.*) \\~.*", "\\1", models[[i]]@call[2]))
+                      , iv = as.factor(paste(colnames(iv), collapse = "_")))
+    }
     out <- rbind(out, res)
   }
   
