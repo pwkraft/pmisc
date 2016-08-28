@@ -1,32 +1,34 @@
 #' Simulate expected values/first differences (replaces Zelig)
 #' built: 2016-08-27, Patrick Kraft
+#' @importFrom MASS mvrnorm
 #' @param models: list of model results (lm, glm, or vglm/tobit)
 #' @param iv: data frame containing the values for comparison (only 2 rows, selected variables)
 #' @param robust: logical, should robust standard errors be used
 #' @param nsim: number of simulations
 #' @return data.frame: contains expected values, confidence intervals, variable names
-#' @exportFrom MASS mvrnorm
-#' 
+
+#' @export
+#'
 
 sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
 
   ## prepare output object, convert input to model list
   out <- NULL
   if(class(models)[1] != "list") models <- list(models)
-  
+
   for(i in 1:length(models)){
     ## simulate betas from sampling distribution
     if(robust == T){
-      betas <- mvrnorm(nsim, coef(models[[i]]), vcovHC(models[[i]]))
+      betas <- MASS::mvrnorm(nsim, coef(models[[i]]), vcovHC(models[[i]]))
     } else {
-      betas <- mvrnorm(nsim, coef(models[[i]]), vcov(models[[i]]))
+      betas <- MASS::mvrnorm(nsim, coef(models[[i]]), vcov(models[[i]]))
     }
-    
+
     ## extract variable names
     vars <- names(coef(models[[i]]))
     int <- grep("[^)]:", vars)
     varsInt <- strsplit(vars[int], ":")
-    
+
     ## generate matrix of covariates
     X <- matrix(1, nrow=length(vars), ncol=nrow(iv))
     X[vars %in% names(iv),] <- t(iv[vars[vars %in% names(iv)]])
@@ -41,14 +43,14 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
                      , 2, mean, na.rm=T)
     } else stop("Model type not supported")
     X[vars %in% names(means),] <- means
-    
+
     ## calculate interaction effects
     if(length(varsInt)>0){
       for(j in 1:length(varsInt)){
         X[int[j],] <- apply(X[vars %in% varsInt[[j]],],2,prod)
       }
     }
-    
+
     ## calculate expected values
     if(class(models[[i]])[1]=="lm"){
       evs <- betas %*% X
@@ -66,11 +68,11 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
       if(unique(models[[i]]@misc$Upper)!=Inf) stop("Upper limit not supported")
       if(unique(models[[i]]@misc$Lower)!=0) warning("Limit != 0 not testes yet!")
       loLim <- unique(models[[i]]@misc$Lower)[1,1]
-      
+
       ## expected values for z>0
       evsTemp <- betas[,-2] %*% X[-2,]
       evs <- evsTemp + betas[,2] * dnorm(evsTemp/betas[,2]) / pnorm(evsTemp/betas[,2])
-      
+
       ## probability of z>0
       pvs <- array(dim = c(nsim,ncol(X),nsim))
       for(j in 1:nrow(pvs)){
@@ -79,7 +81,7 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
       }
       probs <- apply(pvs, 2, function(x) apply(x, 1, function(x) mean(x>loLim)))
     } else stop("Model type not supported")
-    
+
     if(nrow(iv)==2){
       ## calculate first differences
       evs <- evs[,2] - evs[,1]
@@ -95,7 +97,7 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
     } else {
       warning("Check number of scenarios")
     }
-    
+
     ## generate output table
     if(class(models[[i]])[1] != "vglm" & models[[i]]@family@vfamily != "tobit"){
     res <- data.frame(mean = mean(evs)
@@ -115,7 +117,7 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
     }
     out <- rbind(out, res)
   }
-  
+
   ## return output table
   rownames(out) <- NULL
   return(out)

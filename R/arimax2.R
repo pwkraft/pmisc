@@ -5,13 +5,13 @@
 #' the stats:::arima function, with modifications by Kung-Sik Chan.
 #' @export
 
-arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), period = NA), 
-    xreg = NULL, include.mean = TRUE, transform.pars = TRUE, fixed = NULL, init = NULL, 
-    method = c("CSS-ML", "ML", "CSS"), n.cond, optim.control = list(), kappa = 1e+06, 
+arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), period = NA),
+    xreg = NULL, include.mean = TRUE, transform.pars = TRUE, fixed = NULL, init = NULL,
+    method = c("CSS-ML", "ML", "CSS"), n.cond, optim.control = list(), kappa = 1e+06,
     io = NULL, xtransf, transfer = NULL) {
     deriv = function(u) {
         p = length(u)
-        if (p <= 1) 
+        if (p <= 1)
             return(4 * exp(2 * u)/(1 + exp(2 * u))^2)
         A = diag(as.vector(4 * exp(2 * u)/(1 + exp(2 * u))^2))
         pacf = tanh(u)
@@ -29,7 +29,7 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
                 mult1 = newderiv[k]
                 for (j in 1:(k - 1)) {
                   newphi[j] = oldphi[j] - mult * oldphi[k - j]
-                  newderiv[j] = oldderiv[j] - mult * oldderiv[k - j] - mult1 * oldphi[k - 
+                  newderiv[j] = oldderiv[j] - mult * oldderiv[k - j] - mult1 * oldphi[k -
                     j]
                 }
                 oldphi = newphi
@@ -41,7 +41,7 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
     }
     difpar = function(par, arma) {
         res = diag(length(par))
-        if (arma[1]) 
+        if (arma[1])
             res[1:arma[1], 1:arma[1]] = (deriv(par[1:arma[1]]))
         if (arma[3]) {
             indx = sum(arma[c(1, 2)]) + seq(arma[3])
@@ -50,22 +50,22 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
         res
     }
     undotrans = function(par, arma) {
-        if (arma[1]) 
+        if (arma[1])
             par[1:arma[1]] = levinson(par[1:arma[1]])
-        if (arma[3]) 
-            par[sum(arma[c(1, 2)]) + seq(arma[3])] = levinson(par[sum(arma[c(1, 2)]) + 
+        if (arma[3])
+            par[sum(arma[c(1, 2)]) + seq(arma[3])] = levinson(par[sum(arma[c(1, 2)]) +
                 seq(arma[3])])
         par
     }
     pacfparm = function(phi) {
-        res = stats:::ARMAacf(ar = phi, lag.max = length(phi), pacf = TRUE)
+        res = stats::ARMAacf(ar = phi, lag.max = length(phi), pacf = TRUE)
         atanh(res)
     }
     transformpar = function(par, arma) {
-        if (arma[1]) 
+        if (arma[1])
             par[1:arma[1]] = pacfparm(par[1:arma[1]])
-        if (arma[3]) 
-            par[sum(arma[c(1, 2)]) + seq(arma[3])] = pacfparm(par[sum(arma[c(1, 2)]) + 
+        if (arma[3])
+            par[sum(arma[c(1, 2)]) + seq(arma[3])] = pacfparm(par[sum(arma[c(1, 2)]) +
                 seq(arma[3])])
         par
     }
@@ -95,18 +95,18 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
         ind = 0
         for (i in name1) {
             ind = ind + 1
-            if (length(grep("IO-", i)) >= 1) 
-                x[, ind] = armafilter(c(rep(0, d), x[, ind]), phi = phi, theta = c(1, 
+            if (length(grep("IO-", i)) >= 1)
+                x[, ind] = armafilter(c(rep(0, d), x[, ind]), phi = phi, theta = c(1,
                   theta), Delta = Delta)[-(1:d)]
         }
         x
     }
     armafilter = function(x, phi, theta, Delta) {
-        if (length(Delta) > 0) 
+        if (length(Delta) > 0)
             x = filter(x, filter = Delta, sides = 1, method = "recursive")
-        if (length(phi) > 0 && any(phi != 0)) 
+        if (length(phi) > 0 && any(phi != 0))
             x = filter(x, filter = phi, sides = 1, method = "recursive")
-        if (length(theta) > 0) 
+        if (length(theta) > 0)
             x = filter(x, filter = theta, sides = 1, method = "convolution")
         x
     }
@@ -121,7 +121,7 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
             x[point] = 1
             return(x)
         }
-        realp = as.integer(round((point[1] + (point[2] - 1)/xtsp[3] - xtsp[1]) * 
+        realp = as.integer(round((point[1] + (point[2] - 1)/xtsp[3] - xtsp[1]) *
             xtsp[3] + 1))
         pulse[realp] = 1
         pulse
@@ -133,9 +133,9 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
             ind = ind + 1
             p = modorder[1]
             q = modorder[2]
-            if (p > 0) 
+            if (p > 0)
                 phi = par[ncoef + (1:p)] else phi = NULL
-            if (q > 0) 
+            if (q > 0)
                 theta = par[ncoef + p + (1:q)] else theta = NULL
             ncoef = ncoef + p + q
             x = x - armafilter(xtransf[, ind], phi = phi, theta = theta, Delta = NULL)
@@ -144,13 +144,13 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
     }
     btrarma = function(par, arma, trans) {
         if (trans) {
-            if (arma[1]) 
+            if (arma[1])
                 par[1:arma[1]] = levinson(par[1:arma[1]])
-            if (arma[3]) 
-                par[sum(arma[c(1, 2)]) + seq(arma[3])] = levinson(par[sum(arma[c(1, 
+            if (arma[3])
+                par[sum(arma[c(1, 2)]) + seq(arma[3])] = levinson(par[sum(arma[c(1,
                   2)]) + seq(arma[3])])
         }
-        if (arma[1]) 
+        if (arma[1])
             phi = c(1, -par[1:arma[1]]) else phi = 1
         if (arma[3]) {
             Phi = c(1, -par[sum(arma[c(1, 2)]) + seq(arma[3])])
@@ -161,7 +161,7 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
         } else Phi = 1
         phi = conv(phi, Phi)
         phi = -phi[-1]
-        if (arma[2]) 
+        if (arma[2])
             theta = c(1, par[arma[1] + seq(arma[2])]) else theta = 1
         if (arma[4]) {
             Theta = c(1, par[sum(arma[c(1, 2, 3)]) + seq(arma[4])])
@@ -177,7 +177,7 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
     levinson = function(u) {
         pacf = tanh(u)
         p = length(u)
-        if (p <= 1) 
+        if (p <= 1)
             return(pacf) else {
             oldphi = pacf
             for (k in 2:p) {
@@ -202,9 +202,9 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
             nxreg = checkIO(xreg, phi = Z$phi, theta = Z$theta, Delta = Z$Delta)
             x <- x - nxreg %*% par[narma + (1:ncxreg)]
         }
-        if (ntransf.term) 
+        if (ntransf.term)
             x = upx(x, par)
-        res = stats:::arima(x, order = order, seasonal = seasonal, fixed = NULL, 
+        res = stats::arima(x, order = order, seasonal = seasonal, fixed = NULL,
             method = "ML", include.mean = FALSE, transform.pars = FALSE)
         (-2 * res$loglik - n.used * (1 + log(2 * pi)))/(2 * n.used)
     }
@@ -218,9 +218,9 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
             nxreg = checkIO(xreg, phi = Z$phi, theta = Z$theta, Delta = Z$Delta)
             x <- x - nxreg %*% par[narma + (1:ncxreg)]
         }
-        if (ntransf.term) 
+        if (ntransf.term)
             x = upx(x, par)
-        res = stats:::arima(x, order = order, seasonal = seasonal, fixed = NULL, 
+        res = stats:::arima(x, order = order, seasonal = seasonal, fixed = NULL,
             method = "ML", include.mean = FALSE, transform.pars = FALSE)
         res
     }
@@ -234,9 +234,9 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
             nxreg = checkIO(xreg, phi = trarma[[1]], theta = trarma[[2]], Delta = Delta)
             x <- x - nxreg %*% par[narma + (1:ncxreg)]
         }
-        if (ntransf.term) 
+        if (ntransf.term)
             x = upx(x, par)
-        res = stats:::arima(x, order = order, seasonal = seasonal, fixed = NULL, 
+        res = stats:::arima(x, order = order, seasonal = seasonal, fixed = NULL,
             method = "CSS", include.mean = FALSE, transform.pars = FALSE)$sigma2
         0.5 * log(res)
     }
@@ -250,27 +250,27 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
             nxreg = checkIO(xreg, phi = trarma[[1]], theta = trarma[[2]], Delta = Delta)
             x <- x - nxreg %*% par[narma + (1:ncxreg)]
         }
-        if (ntransf.term) 
+        if (ntransf.term)
             x = upx(x, par)
-        stats:::arima(x, order = order, seasonal = seasonal, fixed = NULL, method = "CSS", 
+        stats:::arima(x, order = order, seasonal = seasonal, fixed = NULL, method = "CSS",
             include.mean = FALSE, transform.pars = FALSE)
     }
     arCheck <- function(ar) {
         p <- max(which(c(1, -ar) != 0)) - 1
-        if (!p) 
+        if (!p)
             return(TRUE)
         all(Mod(polyroot(c(1, -ar[1:p]))) > 1)
     }
     maInvert <- function(ma) {
         q <- length(ma)
         q0 <- max(which(c(1, ma) != 0)) - 1
-        if (!q0) 
+        if (!q0)
             return(ma)
         roots <- polyroot(c(1, ma[1:q0]))
         ind <- Mod(roots) < 1
-        if (all(!ind)) 
+        if (all(!ind))
             return(ma)
-        if (q0 == 1) 
+        if (q0 == 1)
             return(c(1/ma[1], rep(0, q - q0)))
         roots[ind] <- 1/roots[ind]
         x <- 1
@@ -278,42 +278,42 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
         c(Re(x[-1]), rep(0, q - q0))
     }
     if (missing(io) & missing(xtransf) & missing(transfer)) {
-        res = stats:::arima(x = x, order = order, seasonal = seasonal, xreg = xreg, 
-            include.mean = include.mean, transform.pars = transform.pars, fixed = NULL, 
-            init = init, method = method, n.cond = if (!missing(n.cond)) 
+        res = stats:::arima(x = x, order = order, seasonal = seasonal, xreg = xreg,
+            include.mean = include.mean, transform.pars = transform.pars, fixed = NULL,
+            init = init, method = method, n.cond = if (!missing(n.cond))
                 n.cond, optim.control = optim.control, kappa = kappa)
         res$call = match.call()
         res$aic = res$aic - 2
         return(res)
     }
     series <- deparse(substitute(x))
-    if (NCOL(x) > 1) 
+    if (NCOL(x) > 1)
         stop("only implemented for univariate time series")
     method <- match.arg(method)
     x <- as.ts(x)
-    if (!is.numeric(x)) 
+    if (!is.numeric(x))
         stop("'x' must be numeric")
     storage.mode(x) <- "double"
     dim(x) <- NULL
     n <- length(x)
-    if (!missing(order)) 
-        if (!is.numeric(order) || length(order) != 3 || any(order < 0)) 
+    if (!missing(order))
+        if (!is.numeric(order) || length(order) != 3 || any(order < 0))
             stop("'order' must be a non-negative numeric vector of length 3")
-    if (!missing(seasonal)) 
+    if (!missing(seasonal))
         if (is.list(seasonal)) {
-            if (is.null(seasonal$order)) 
+            if (is.null(seasonal$order))
                 stop("'seasonal' must be a list with component 'order'")
-            if (!is.numeric(seasonal$order) || length(seasonal$order) != 3 || any(seasonal$order < 
-                0)) 
+            if (!is.numeric(seasonal$order) || length(seasonal$order) != 3 || any(seasonal$order <
+                0))
                 stop("'seasonal$order' must be a non-negative numeric vector of length 3")
         } else if (is.numeric(order)) {
-            if (length(order) == 3) 
+            if (length(order) == 3)
                 seasonal <- list(order = seasonal) else ("'seasonal' is of the wrong length")
         } else stop("'seasonal' must be a list with component 'order'")
-    if (is.null(seasonal$period) || is.na(seasonal$period) || seasonal$period == 
-        0) 
+    if (is.null(seasonal$period) || is.na(seasonal$period) || seasonal$period ==
+        0)
         seasonal$period <- frequency(x)
-    arma <- as.integer(c(order[-2], seasonal$order[-2], seasonal$period, order[2], 
+    arma <- as.integer(c(order[-2], seasonal$order[-2], seasonal$period, order[2],
         seasonal$order[2]))
     narma <- sum(arma[1:4])
     xtsp <- tsp(x)
@@ -323,7 +323,7 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
         Pm = sapply(io, makePulse, xtsp)
         name1 = substitute(io)
         namev = NULL
-        for (i in 2:length(name1)) namev = c(namev, paste("IO", deparse(name1[[i]]), 
+        for (i in 2:length(name1)) namev = c(namev, paste("IO", deparse(name1[[i]]),
             sep = "-"))
         colnames(Pm) = namev
     }
@@ -333,24 +333,24 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
     Delta <- -Delta[-1]
     nd <- order[2] + seasonal$order[2]
     n.used <- sum(!is.na(x)) - length(Delta)
-    if (!is.null(xreg)) 
+    if (!is.null(xreg))
         xreg = data.frame(xreg)
-    if (!is.null(xreg)) 
+    if (!is.null(xreg))
         xreg = as.matrix(xreg)
     xreg = cbind(xreg, Pm)
     if (is.null(xreg)) {
         ncxreg <- 0
     } else {
         nmxreg <- deparse(substitute(xreg))
-        if (NROW(xreg) != n) 
+        if (NROW(xreg) != n)
             stop("lengths of 'x' and 'xreg' do not match")
         ncxreg <- NCOL(xreg)
         xreg <- as.matrix(xreg)
         storage.mode(xreg) <- "double"
     }
     class(xreg) <- NULL
-    if (ncxreg > 0 && is.null(colnames(xreg))) 
-        colnames(xreg) <- if (ncxreg == 1) 
+    if (ncxreg > 0 && is.null(colnames(xreg)))
+        colnames(xreg) <- if (ncxreg == 1)
             nmxreg else paste(nmxreg, 1:ncxreg, sep = "")
     if (include.mean && (nd == 0)) {
         xreg <- cbind(intercept = rep(1, n), xreg = xreg)
@@ -364,41 +364,41 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
         storage.mode(xtransf) = "double"
         ntransf.term = length(transfer)
         ntransf = sum(sapply(transfer, sum))
-        if (missing(xtransf) && length(transfer) != ncol(xtransf)) 
+        if (missing(xtransf) && length(transfer) != ncol(xtransf))
             stop("no of columns of xtransf need to equal the number of transfer sub-models")
         ncoef = narma + ncxreg
         ind = 0
-        if (!is.null(colnames(xtransf))) 
+        if (!is.null(colnames(xtransf)))
             tnames = colnames(xtransf) else tnames = paste("T", 1:ntransf.term, sep = "")
         for (modorder in transfer) {
             ind = ind + 1
             p = modorder[1]
             q = modorder[2]
-            if (p > 0) 
+            if (p > 0)
                 ct = c(ct, paste(paste(tnames[ind], "AR", sep = "-"), 1:p, sep = ""))
-            if (q > 0) 
+            if (q > 0)
                 ct = c(ct, paste(paste(tnames[ind], "MA", sep = "-"), 1:q - 1, sep = ""))
         }
     }
     if (method == "CSS-ML") {
         anyna <- any(is.na(x))
-        if (ncxreg) 
+        if (ncxreg)
             anyna <- anyna || any(is.na(xreg))
-        if (anyna) 
+        if (anyna)
             method <- "ML"
     }
     if (method == "CSS" || method == "CSS-ML") {
         ncond <- order[2] + seasonal$order[2] * seasonal$period
         ncond1 <- order[1] + seasonal$period * seasonal$order[1]
-        ncond <- if (!missing(n.cond)) 
+        ncond <- if (!missing(n.cond))
             ncond + max(n.cond, ncond1) else ncond + ncond1
     } else ncond <- 0
-    if (is.null(fixed)) 
-        fixed <- rep(as.numeric(NA), narma + ncxreg + ntransf) else if (length(fixed) != narma + ncxreg + ntransf) 
+    if (is.null(fixed))
+        fixed <- rep(as.numeric(NA), narma + ncxreg + ntransf) else if (length(fixed) != narma + ncxreg + ntransf)
         stop("wrong length for 'fixed'")
     mask <- is.na(fixed)
     no.optim <- !any(mask)
-    if (no.optim) 
+    if (no.optim)
         transform.pars <- FALSE
     if (transform.pars) {
         ind <- arma[1] + arma[2] + seq(length = arma[3])
@@ -439,55 +439,55 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
             parscale = c(parscale, rep(10 * ses, sum(transfer[[i]])))
         }
     }
-    if (n.used <= 0) 
+    if (n.used <= 0)
         stop("too few non-missing observations")
     if (!is.null(init)) {
-        if (length(init) != length(init0)) 
+        if (length(init) != length(init0))
             stop("'init' is of the wrong length")
-        if (any(ind <- is.na(init))) 
+        if (any(ind <- is.na(init)))
             init[ind] <- init0[ind]
         if (method == "ML") {
-            if (arma[1] > 0) 
-                if (!arCheck(init[1:arma[1]])) 
+            if (arma[1] > 0)
+                if (!arCheck(init[1:arma[1]]))
                   stop("non-stationary AR part")
-            if (arma[3] > 0) 
-                if (!arCheck(init[sum(arma[1:2]) + 1:arma[3]])) 
+            if (arma[3] > 0)
+                if (!arCheck(init[sum(arma[1:2]) + 1:arma[3]]))
                   stop("non-stationary seasonal AR part")
-            if (transform.pars) 
+            if (transform.pars)
                 init = transformpar(init, arma)
         }
     } else init <- init0
     coef <- as.double(fixed)
-    if (!("parscale" %in% names(optim.control))) 
+    if (!("parscale" %in% names(optim.control)))
         optim.control$parscale <- parscale[mask]
     if (method == "CSS") {
-        res <- if (no.optim) 
-            list(convergence = 0, par = numeric(0), value = armaCSS(numeric(0))) else optim(init[mask], armaCSS, method = "BFGS", hessian = TRUE, control = optim.control, 
+        res <- if (no.optim)
+            list(convergence = 0, par = numeric(0), value = armaCSS(numeric(0))) else optim(init[mask], armaCSS, method = "BFGS", hessian = TRUE, control = optim.control,
             trans = transform.pars)
-        if (res$convergence > 0) 
+        if (res$convergence > 0)
             warning("possible convergence problem: optim gave code=", res$convergence)
         coef[mask] <- res$par
         val <- armaCSS1(res$par, transform.pars)
         sigma2 <- val$sigma2
         mod = val$mod
-        var <- if (no.optim) 
+        var <- if (no.optim)
             numeric(0) else solve(res$hessian * n.used)
     } else {
         if (method == "CSS-ML") {
-            res <- if (no.optim) 
-                list(convergence = 0, par = numeric(0), value = armaCSS(numeric(0), 
-                  trans = FALSE)) else optim(init[mask], armaCSS, method = "BFGS", hessian = FALSE, control = optim.control, 
+            res <- if (no.optim)
+                list(convergence = 0, par = numeric(0), value = armaCSS(numeric(0),
+                  trans = FALSE)) else optim(init[mask], armaCSS, method = "BFGS", hessian = FALSE, control = optim.control,
                 trans = transform.pars)
             if (res$convergence == 0) {
-                if (transform.pars) 
+                if (transform.pars)
                   res$par = undotrans(res$par, arma)
                 init[mask] <- res$par
             }
-            if (arma[1] > 0) 
-                if (!arCheck(init[1:arma[1]])) 
+            if (arma[1] > 0)
+                if (!arCheck(init[1:arma[1]]))
                   stop("non-stationary AR part from CSS")
-            if (arma[3] > 0) 
-                if (!arCheck(init[sum(arma[1:2]) + 1:arma[3]])) 
+            if (arma[3] > 0)
+                if (!arCheck(init[sum(arma[1:2]) + 1:arma[3]]))
                   stop("non-stationary seasonal AR part from CSS")
             ncond <- 0
         }
@@ -504,26 +504,26 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
         }
         trarma <- btrarma(init, arma, transform.pars)
         mod <- makeARIMA(trarma[[1]], trarma[[2]], Delta, kappa)
-        res <- if (no.optim) 
-            list(convergence = 0, par = numeric(0), value = armafn(numeric(0), as.logical(transform.pars))) else optim(init[mask], armafn, method = "BFGS", hessian = TRUE, control = optim.control, 
+        res <- if (no.optim)
+            list(convergence = 0, par = numeric(0), value = armafn(numeric(0), as.logical(transform.pars))) else optim(init[mask], armafn, method = "BFGS", hessian = TRUE, control = optim.control,
             trans = as.logical(transform.pars))
-        if (res$convergence > 0) 
+        if (res$convergence > 0)
             warning("possible convergence problem: optim gave code=", res$convergence)
         coef[mask] <- res$par
         if (transform.pars) {
             if (arma[2] > 0) {
                 ind <- arma[1] + 1:arma[2]
-                if (all(mask[ind])) 
+                if (all(mask[ind]))
                   coef[ind] <- maInvert(coef[ind])
             }
             if (arma[4] > 0) {
                 ind <- sum(arma[1:3]) + 1:arma[4]
-                if (all(mask[ind])) 
+                if (all(mask[ind]))
                   coef[ind] <- maInvert(coef[ind])
             }
             if (any(coef[mask] != res$par)) {
                 oldcode <- res$convergence
-                res <- optim(coef[mask], armafn, method = "BFGS", hessian = TRUE, 
+                res <- optim(coef[mask], armafn, method = "BFGS", hessian = TRUE,
                   control = list(maxit = 0, parscale = optim.control$parscale), trans = TRUE)
                 res$convergence <- oldcode
                 coef[mask] <- res$par
@@ -532,23 +532,23 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
             A <- A[mask, mask]
             var <- t(A) %*% solve(res$hessian * n.used) %*% A
             coef = undotrans(coef, arma)
-        } else var <- if (no.optim) 
+        } else var <- if (no.optim)
             numeric(0) else solve(res$hessian * n.used)
         val = armafn1(res$par, as.logical(transform.pars))
         sigma2 <- val$sigma2
         mod = val$mod
     }
     value <- 2 * n.used * res$value + n.used + n.used * log(2 * pi)
-    aic <- if (method != "CSS") 
+    aic <- if (method != "CSS")
         value + 2 * sum(mask) else NA
     nm <- NULL
-    if (arma[1] > 0) 
+    if (arma[1] > 0)
         nm <- c(nm, paste("ar", 1:arma[1], sep = ""))
-    if (arma[2] > 0) 
+    if (arma[2] > 0)
         nm <- c(nm, paste("ma", 1:arma[2], sep = ""))
-    if (arma[3] > 0) 
+    if (arma[3] > 0)
         nm <- c(nm, paste("sar", 1:arma[3], sep = ""))
-    if (arma[4] > 0) 
+    if (arma[4] > 0)
         nm <- c(nm, paste("sma", 1:arma[4], sep = ""))
     if (ncxreg > 0) {
         nm <- c(nm, cn)
@@ -563,14 +563,14 @@ arimax2 <- function(x, order = c(0, 0, 0), seasonal = list(order = c(0, 0, 0), p
     }
     nm = c(nm, ct)
     names(coef) <- nm
-    if (!no.optim) 
+    if (!no.optim)
         dimnames(var) <- list(nm[mask], nm[mask])
     resid <- val$residuals
     tsp(resid) <- xtsp
     class(resid) <- "ts"
-    res <- list(coef = coef, sigma2 = sigma2, var.coef = var, mask = mask, loglik = -0.5 * 
-        value, aic = aic, arma = arma, residuals = resid, call = match.call(), series = series, 
+    res <- list(coef = coef, sigma2 = sigma2, var.coef = var, mask = mask, loglik = -0.5 *
+        value, aic = aic, arma = arma, residuals = resid, call = match.call(), series = series,
         code = res$convergence, n.cond = ncond, model = mod)
     class(res) <- c("Arimax", "Arima")
     res
-} 
+}
