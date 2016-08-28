@@ -1,17 +1,15 @@
 #' Simulate expected values/first differences (replaces Zelig)
 #' built: 2016-08-27, Patrick Kraft
-#' @param models: list of model results
+#' @param models: list of model results (lm, glm, or vglm/tobit)
 #' @param iv: data frame containing the values for comparison (only 2 rows, selected variables)
 #' @param robust: logical, should robust standard errors be used
+#' @param nsim: number of simulations
 #' @return data.frame: contains expected values, confidence intervals, variable names
 #' @exportFrom MASS mvrnorm
 #' 
 
-sim <- function(models, iv, robust=F, ci=c(0.025,0.975)){
-  ## function to calculate first differences in predicted probabilities for probit model
-  ## models: list of glm probit models
-  ## 
-  
+sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
+
   ## prepare output object, convert input to model list
   out <- NULL
   if(class(models)[1] != "list") models <- list(models)
@@ -19,9 +17,9 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975)){
   for(i in 1:length(models)){
     ## simulate betas from sampling distribution
     if(robust == T){
-      betas <- mvrnorm(1000, coef(models[[i]]), vcovHC(models[[i]]))
+      betas <- mvrnorm(nsim, coef(models[[i]]), vcovHC(models[[i]]))
     } else {
-      betas <- mvrnorm(1000, coef(models[[i]]), vcov(models[[i]]))
+      betas <- mvrnorm(nsim, coef(models[[i]]), vcov(models[[i]]))
     }
     
     ## extract variable names
@@ -61,13 +59,25 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975)){
         evs <- pnorm(betas %*% X)
       } else stop("Model type not supported")
     } else if(class(models[[i]])[1] == "vglm" & models[[i]]@family@vfamily == "tobit"){
-      ## CONTINUE HERE, check whether this is correct
-      ## IDEA: each original evs column as a new matrix where each column is an individual
-      ## simulation with the given mean of the row of the original matrix.
-      ## then decompose effect of tobit in dP(Y>0) and dY|Y>0
-      evs <- matrix(rnorm(nrow(betas)*100, betas[,-2] %*% X[-2,]
-                          , sd = exp(betas[,2])), ncol = 2)
-      evs2 <- apply(evs, 2, function(x) x)
+      ## IDEA: decompose effect of tobit in dP(Y>0) and dY|Y>0
+      ## based on predicted values (rather than EVs)
+      ## note that betas[,2] is log(Sigma) estimate
+      evs <- betas[,-2] %*% X[-2,]
+      pvs <- array(dim = c(nsim,ncol(X),nsim))
+      for(j in 1:nrow(pvs)){
+        pvs[j,,] <- matrix(rnorm(nsim*ncol(X), mean = evs[j,], sd = exp(betas[j,2]))
+                           , ncol = nsim)
+      }
+      test <- apply(pvs, 2, function(x) apply(x, 1, function(x) mean(x>0)))
+      head(test)
+      head(evs)
+      plot(as.vector(test),as.vector(evs))
+      
+      pvs <- matrix(rnorm(length(betas)*100
+                          , rep(as.vector(betas[,-2] %*% X[-2,]),each=100)
+                          , ncol = ncol(X))
+      pvs <- cbind(pvs
+      evs <- apply(evsTemp, 2, function(x) x)
       
       unique(models[[i]]@misc$Lower)
     } else stop("Model type not supported")
