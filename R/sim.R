@@ -86,14 +86,16 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
     if(nrow(iv)==2){
       ## calculate first differences
       evs <- evs[,2] - evs[,1]
-      if(class(models[[i]])[1] == "vglm" & models[[i]]@family@vfamily == "tobit"){
-        prob <- prob[,2] - prob[,1]
+      if(class(models[[i]])[1] == "vglm"){
+        if(models[[i]]@family@vfamily == "tobit")
+          prob <- prob[,2] - prob[,1]
       }
     } else if(nrow(iv)==4) {
       ## calculate difference-in-difference
       evs <- (evs[,2] - evs[,1]) - (evs[,4] - evs[,3])
-      if(class(models[[i]])[1] == "vglm" & models[[i]]@family@vfamily == "tobit"){
-        prob <- (prob[,2] - prob[,1]) - (prob[,4] - prob[,3])
+      if(class(models[[i]])[1] == "vglm"){
+        if(models[[i]]@family@vfamily == "tobit")
+          prob <- (prob[,2] - prob[,1]) - (prob[,4] - prob[,3])
       }
     } else {
       warning("Check number of scenarios")
