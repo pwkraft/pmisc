@@ -102,16 +102,16 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
     }
 
     ## generate output table
-    if(class(models[[i]])[1] != "vglm" & models[[i]]@family@vfamily != "tobit"){
+    if(class(models[[i]])[1] != "vglm"){
     res <- data.frame(mean = mean(evs)
                       , cilo = quantile(evs, ci[1])
                       , cihi = quantile(evs, ci[2])
                       , dv = as.factor(colnames(models[[i]]$model)[1])
                       , iv = as.factor(paste(colnames(iv), collapse = "_")))
     } else {
-    res <- data.frame(mean = c(mean(evs), mean(prob))
-                      , cilo = c(quantile(evs, ci[1]),quantile(prob, ci[1]))
-                      , cihi = c(quantile(evs, ci[2]), quantile(prob, ci[2]))
+    res <- data.frame(mean = c(mean(evs, na.rm = T), mean(prob, na.rm = T))
+                      , cilo = c(quantile(evs, ci[1], na.rm = T),quantile(prob, ci[1], na.rm = T))
+                      , cihi = c(quantile(evs, ci[2], na.rm = T), quantile(prob, ci[2], na.rm = T))
                       , dv = as.factor(sub("(.*) \\~.*", "\\1", models[[i]]@call[2]))
                       , iv = as.factor(paste(colnames(iv), collapse = "_"))
                       , value = factor(c("Probability P(y)>0","Expected Value E(y|y>0)")
