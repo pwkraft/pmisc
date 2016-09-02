@@ -72,7 +72,7 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
 
       ## expected values for z>0
       evsTemp <- betas[,-2] %*% X[-2,]
-      evs <- evsTemp + betas[,2] * dnorm(evsTemp/betas[,2]) / pnorm(evsTemp/betas[,2])
+      evs <- evsTemp + exp(betas[,2]) * dnorm(evsTemp/exp(betas[,2])) / pnorm(evsTemp/exp(betas[,2]))
 
       ## probability of z>0
       pvs <- array(dim = c(nsim,ncol(X),nsim))
