@@ -100,6 +100,12 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
     } else {
       warning("Check number of scenarios")
     }
+    
+    ## warning for Inf/-Inf in single iterations
+    if(Inf %in% evs|-Inf %in% evs){
+      warning(paste0("Inf/-Inf in ",length(evs[evs==Inf])+length(evs[evs==-Inf])," evs iteration(s)"))
+      evs[evs==Inf|evs==-Inf] <- NA
+    }
 
     ## generate output table
     if(class(models[[i]])[1] != "vglm"){
@@ -109,9 +115,9 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
                       , dv = as.factor(colnames(models[[i]]$model)[1])
                       , iv = as.factor(paste(colnames(iv), collapse = "_")))
     } else {
-    res <- data.frame(mean = c(mean(evs, na.rm = T), mean(prob, na.rm = T))
-                      , cilo = c(quantile(evs, ci[1], na.rm = T),quantile(prob, ci[1], na.rm = T))
-                      , cihi = c(quantile(evs, ci[2], na.rm = T), quantile(prob, ci[2], na.rm = T))
+    res <- data.frame(mean = c(mean(prob, na.rm = T), mean(evs, na.rm = T))
+                      , cilo = c(quantile(prob, ci[1], na.rm = T),quantile(evs, ci[1], na.rm = T))
+                      , cihi = c(quantile(prob, ci[2], na.rm = T), quantile(evs, ci[2], na.rm = T))
                       , dv = as.factor(sub("(.*) \\~.*", "\\1", models[[i]]@call[2]))
                       , iv = as.factor(paste(colnames(iv), collapse = "_"))
                       , value = factor(c("Probability P(y)>0","Expected Value E(y|y>0)")
