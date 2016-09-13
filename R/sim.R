@@ -120,8 +120,8 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
                       , cihi = c(quantile(prob, ci[2], na.rm = T), quantile(evs, ci[2], na.rm = T))
                       , dv = as.factor(sub("(.*) \\~.*", "\\1", models[[i]]@call[2]))
                       , iv = as.factor(paste(colnames(iv), collapse = "_"))
-                      , value = factor(c("Probability P(y)>0","Expected Value E(y|y>0)")
-                                       , levels = c("Probability P(y)>0","Expected Value E(y|y>0)")))
+                      , value = factor(c("Probability P(y>0)","Expected Value E(y|y>0)")
+                                       , levels = c("Probability P(y>0)","Expected Value E(y|y>0)")))
     }
     out <- rbind(out, res)
   }
