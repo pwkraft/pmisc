@@ -7,7 +7,6 @@
 #' @param robust: logical, should robust standard errors be used
 #' @param nsim: number of simulations
 #' @return data.frame: contains expected values, confidence intervals, variable names
-
 #' @export
 #'
 
@@ -98,7 +97,13 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
           prob <- (prob[,2] - prob[,1]) - (prob[,4] - prob[,3])
       }
     } else {
-      warning("Check number of scenarios")
+      ## compute predicted values for each step
+      warning("Check number of scenarios - STILL TESTING")
+      res <- data.frame(mean = apply(evs, 2, mean)
+                        , cilo = apply(evs, 2, quantile, ci[1])
+                        , cihi = apply(evs, 2, quantile, ci[1])
+                        , dv = as.factor(colnames(models[[i]]$model)[1])
+                        , iv = as.factor(paste(colnames(iv), collapse = "_")))
     }
     
     ## warning for Inf/-Inf in single iterations
