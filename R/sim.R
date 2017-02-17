@@ -81,6 +81,8 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
       }
       prob <- apply(pvs, 2, function(x) apply(x, 1, function(x) mean(x>loLim)))
     } else stop("Model type not supported")
+    
+    skip <- F
 
     if(nrow(iv)==2){
       ## calculate first differences
@@ -99,11 +101,25 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
     } else {
       ## compute predicted values for each step
       warning("Check number of scenarios - STILL TESTING")
-      res <- data.frame(mean = apply(evs, 2, mean)
-                        , cilo = apply(evs, 2, quantile, ci[1])
-                        , cihi = apply(evs, 2, quantile, ci[1])
-                        , dv = as.factor(colnames(models[[i]]$model)[1])
-                        , iv = as.factor(paste(colnames(iv), collapse = "_")))
+      if(class(models[[i]])[1] != "vglm"){
+        res <- data.frame(mean = apply(evs, 2, mean)
+                          , cilo = apply(evs, 2, quantile, ci[1])
+                          , cihi = apply(evs, 2, quantile, ci[2])
+                          , dv = as.factor(colnames(models[[i]]$model)[1])
+                          , iv = as.factor(paste(colnames(iv), collapse = "_"))
+                          , ivval = iv[,1])
+      } else if(models[[i]]@family@vfamily == "tobit"){
+        res <- data.frame(mean = c(apply(prob, 2, mean), apply(evs, 2, mean))
+                          , cilo = c(apply(prob, 2, quantile, ci[1]), apply(evs, 2, quantile, ci[1]))
+                          , cihi = c(apply(prob, 2, quantile, ci[2]), apply(evs, 2, quantile, ci[2]))
+                          , dv = as.factor(sub("(.*) \\~.*", "\\1", models[[i]]@call[2]))
+                          , iv = as.factor(paste(colnames(iv), collapse = "_"))
+                          , ivval = iv[,1]
+                          , value = factor(rep(c("Probability P(y>0)","Expected Value E(y|y>0)"), each = nrow(iv))
+                                           , levels = c("Probability P(y>0)","Expected Value E(y|y>0)")))
+      } else stop("Check model type")
+      out <- rbind(out, res)
+      skip <- T
     }
     
     ## warning for Inf/-Inf in single iterations
@@ -111,24 +127,26 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
       warning(paste0("Inf/-Inf in ",length(evs[evs==Inf])+length(evs[evs==-Inf])," evs iteration(s)"))
       evs[evs==Inf|evs==-Inf] <- NA
     }
-
-    ## generate output table
-    if(class(models[[i]])[1] != "vglm"){
-    res <- data.frame(mean = mean(evs)
-                      , cilo = quantile(evs, ci[1])
-                      , cihi = quantile(evs, ci[2])
-                      , dv = as.factor(colnames(models[[i]]$model)[1])
-                      , iv = as.factor(paste(colnames(iv), collapse = "_")))
-    } else {
-    res <- data.frame(mean = c(mean(prob, na.rm = T), mean(evs, na.rm = T))
-                      , cilo = c(quantile(prob, ci[1], na.rm = T),quantile(evs, ci[1], na.rm = T))
-                      , cihi = c(quantile(prob, ci[2], na.rm = T), quantile(evs, ci[2], na.rm = T))
-                      , dv = as.factor(sub("(.*) \\~.*", "\\1", models[[i]]@call[2]))
-                      , iv = as.factor(paste(colnames(iv), collapse = "_"))
-                      , value = factor(c("Probability P(y>0)","Expected Value E(y|y>0)")
-                                       , levels = c("Probability P(y>0)","Expected Value E(y|y>0)")))
+    
+    if(!skip){
+      ## generate output table
+      if(class(models[[i]])[1] != "vglm"){
+        res <- data.frame(mean = mean(evs)
+                          , cilo = quantile(evs, ci[1])
+                          , cihi = quantile(evs, ci[2])
+                          , dv = as.factor(colnames(models[[i]]$model)[1])
+                          , iv = as.factor(paste(colnames(iv), collapse = "_")))
+      } else {
+        res <- data.frame(mean = c(mean(prob, na.rm = T), mean(evs, na.rm = T))
+                          , cilo = c(quantile(prob, ci[1], na.rm = T),quantile(evs, ci[1], na.rm = T))
+                          , cihi = c(quantile(prob, ci[2], na.rm = T), quantile(evs, ci[2], na.rm = T))
+                          , dv = as.factor(sub("(.*) \\~.*", "\\1", models[[i]]@call[2]))
+                          , iv = as.factor(paste(colnames(iv), collapse = "_"))
+                          , value = factor(c("Probability P(y>0)","Expected Value E(y|y>0)")
+                                           , levels = c("Probability P(y>0)","Expected Value E(y|y>0)")))
+      }
+      out <- rbind(out, res)
     }
-    out <- rbind(out, res)
   }
 
   ## return output table
