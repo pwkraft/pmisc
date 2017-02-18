@@ -4,13 +4,13 @@
 #' @importFrom sandwich vcovHC
 #' @param models: list of model results (lm, glm, or vglm/tobit)
 #' @param iv: data frame containing the values for comparison (only 2 rows, selected variables)
-#' @param robust: logical, should robust standard errors be used
+#' @param se: NULL, robust, newey; types of standard errors that should be used
 #' @param nsim: number of simulations
 #' @return data.frame: contains expected values, confidence intervals, variable names
 #' @export
 #'
 
-sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
+sim <- function(models, iv, se=NULL, ci=c(0.025,0.975), nsim = 1000){
 
   ## prepare output object, convert input to model list
   out <- NULL
@@ -18,10 +18,12 @@ sim <- function(models, iv, robust=F, ci=c(0.025,0.975), nsim = 1000){
 
   for(i in 1:length(models)){
     ## simulate betas from sampling distribution
-    if(robust == T){
+    if(is.null(se)){
       betas <- MASS::mvrnorm(nsim, coef(models[[i]]), sandwich::vcovHC(models[[i]]))
-    } else {
+    } else if(se == "robust"){
       betas <- MASS::mvrnorm(nsim, coef(models[[i]]), vcov(models[[i]]))
+    } else if(se == "newey"){
+      betas <- MASS::mvrnorm(nsim, coef(models[[i]]), sandwich::NeweyWest(models[[i]]))
     }
 
     ## extract variable names
